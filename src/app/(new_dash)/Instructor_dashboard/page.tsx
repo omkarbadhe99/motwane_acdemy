@@ -1,31 +1,4 @@
-// "use client";
-// import CourseReport from "../components/course-report";
-// import ReusableTabs from "../components/dashboard-tabs";
-// import MetricsCards from "../components/metrics-card";
 
-// export default function Page() {
-//   const tabMenu = [
-//     { id: "Users", label: "Users" },
-//     { id: "Groups", label: "Groups" },
-//   ];
-//   return (
-//     <>
-//       <div className="container mx-auto p-4">
-//         {/* <DashboardTabs /> */}
-//         {/* <ReusableTabs
-//           tabs={tabMenu}
-//           defaultActive="summary"
-//           onChange={(id) => console.log("Selected tab:", id)}
-//         /> */}
-//         <div className="mt-8">{/* <MetricsCards /> */}</div>
-//         <div className="mt-12">
-//           <CourseReport />
-//         </div>
-//       </div>
-//     </>
-//   );
-// }
-// ------------------------
 
 "use client";
 
@@ -814,7 +787,7 @@ const CourseWizard = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="p-8">
+          {/* <div className="p-8">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
               Create New Course
             </h1>
@@ -822,7 +795,7 @@ const CourseWizard = () => {
               Fill in all the required details for your course
             </p>
 
-            {/* Tabs */}
+        
             <div className="border-b border-gray-200 mb-8">
               <nav className="-mb-px flex space-x-8">
                 {tabs.map((tab) => (
@@ -845,11 +818,11 @@ const CourseWizard = () => {
               </nav>
             </div>
 
-            {/* Tab Content */}
+            
             <form onSubmit={handleSubmit}>
               <div className="mb-8">{renderTabContent()}</div>
 
-              {/* Navigation Buttons */}
+             
               <div className="flex justify-between pt-6 border-t border-gray-200">
                 <button
                   type="button"
@@ -893,7 +866,7 @@ const CourseWizard = () => {
                 </div>
               </div>
             </form>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
