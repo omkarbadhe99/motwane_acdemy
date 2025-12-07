@@ -1,0 +1,562 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
+
+type QAAnswers = { [key: number]: number };
+
+const questions = [
+  {
+    id: 1,
+    question: "What Did You Learn ??......",
+    options: [
+      "Learn the Basic of IOT",
+      "Learn the Basic of IOT",
+      "Learn the Basic of IOT",
+      "Learn the Basic of IOT",
+    ],
+  },
+  {
+    id: 2,
+    question: "Which protocol is commonly used in IOT devices?",
+    options: ["HTTP", "MQTT", "FTP", "SMTP"],
+  },
+  {
+    id: 3,
+    question: "What is the main purpose of sensors in IOT?",
+    options: [
+      "Data storage",
+      "Data processing",
+      "Data collection",
+      "Data transmission",
+    ],
+  },
+  {
+    id: 4,
+    question: "Which component acts as the brain of an IOT device?",
+    options: ["Sensor", "Actuator", "Microcontroller", "Gateway"],
+  },
+  {
+    id: 5,
+    question: "What does IOT stand for?",
+    options: [
+      "Internet of Technology",
+      "Internet of Things",
+      "Integration of Things",
+      "Intelligence of Things",
+    ],
+  },
+];
+
+const TIME_LIMIT = 30 * 60; // 30 minutes in seconds
+
+export default function IOTAssessmentPage() {
+  const router = useRouter();
+
+  // state
+  const [currentQuestion, setCurrentQuestion] = useState<number>(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<QAAnswers>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(TIME_LIMIT);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+
+  // attempts left for retry (adjust initial value as you like)
+  const [attemptsLeft, setAttemptsLeft] = useState<number>(2);
+
+  // correct answers mapping (question index => correct option index)
+  // NOTE: indexes are 0-based matching the questions array
+  const correctAnswers: { [key: number]: number } = {
+    0: 0, // Q1 - if first option is considered correct (adjust if needed)
+    1: 1, // Q2 -> MQTT
+    2: 2, // Q3 -> Data collection
+    3: 2, // Q4 -> Microcontroller
+    4: 1, // Q5 -> Internet of Things
+  };
+
+  // Timer effect
+  useEffect(() => {
+    if (isSubmitted || isTimeUp) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setIsTimeUp(true);
+          handleAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isSubmitted, isTimeUp]);
+
+  const handleAutoSubmit = () => {
+    setIsSubmitted(true);
+    // selectedAnswers logged for debugging; send to server if needed
+    console.log("Auto-submitted due to time limit. Answers:", selectedAnswers);
+  };
+
+  // option select
+  const handleOptionSelect = (optionIndex: number) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [currentQuestion]: optionIndex,
+    }));
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion((p) => p + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion((p) => p - 1);
+    }
+  };
+
+  const handleSubmit = () => {
+    setIsSubmitted(true);
+    console.log("Submitted answers:", selectedAnswers);
+  };
+
+  const handleQuestionNav = (index: number) => setCurrentQuestion(index);
+
+  // Format time helper
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  // score calculation
+  const computeScore = () => {
+    const answeredKeys = Object.keys(selectedAnswers).map((k) => Number(k));
+    let correctCount = 0;
+    for (const qIndex of answeredKeys) {
+      if (
+        correctAnswers[qIndex] !== undefined &&
+        selectedAnswers[qIndex] === correctAnswers[qIndex]
+      ) {
+        correctCount++;
+      }
+    }
+    const percent = Math.round((correctCount / questions.length) * 100);
+    return { correctCount, percent };
+  };
+
+  const { correctCount, percent: scorePercent } = computeScore();
+  const isPassed = scorePercent >= 50; // pass threshold (change if necessary)
+
+  // Try again handler (reset and decrement attempts)
+  const handleTryAgain = () => {
+    if (attemptsLeft <= 0) {
+      // no attempts left — navigate or show message
+      router.push("/courses/1");
+      return;
+    }
+
+    setAttemptsLeft((a) => a - 1);
+    setIsSubmitted(false);
+    setIsTimeUp(false);
+    setCurrentQuestion(0);
+    setSelectedAnswers({});
+    setTimeLeft(TIME_LIMIT);
+  };
+
+  // Download certificate handler (placeholder)
+  const handleDownloadCertificate = () => {
+    // Replace this with actual certificate generation/download logic
+    // For now we navigate to a certificate route or open a PDF if available
+    // Example: router.push("/courses/1/certificate") or window.open("/certificate.pdf")
+    if (typeof window !== "undefined") {
+      // attempt to open certificate URL - change to your actual certificate resource
+      window.open("/certificate.pdf", "_blank");
+    }
+  };
+
+  // Reset assessment flow for "Take Another Assessment" or "Retry Assessment" after pass
+  const handleTakeAnother = () => {
+    setIsSubmitted(false);
+    setIsTimeUp(false);
+    setCurrentQuestion(0);
+    setSelectedAnswers({});
+    setTimeLeft(TIME_LIMIT);
+    // Optionally reset attemptsLeft as desired
+  };
+
+  // -------- Render result screens when submitted or time up --------
+  if (isSubmitted || isTimeUp) {
+    // Choose images located in /public : /success.png and /failed.png
+    const imgSrc = isPassed ? "/success.png" : "/failed.png";
+
+    return (
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto">
+          <Card className="p-8 text-center shadow-lg border">
+            {/* Header */}
+            <div className="mb-4">
+              <h1
+                className={`text-3xl font-bold mb-2 ${
+                  isPassed ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {isPassed ? "🎉 Congratulations!" : "⚠ Try Again!"}
+              </h1>
+              <p className="text-gray-600">
+                {isPassed
+                  ? "Thanks For Participating"
+                  : "Thanks For Participating"}
+              </p>
+            </div>
+
+            {/* Score */}
+            <div className="mb-4">
+              <p className="text-lg text-gray-700 mb-1">Your Score :</p>
+              <p
+                className={`text-4xl font-extrabold ${
+                  isPassed ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {scorePercent}%
+              </p>
+            </div>
+
+            {/* Message */}
+            <div className="mb-6">
+              <p className="text-gray-700">
+                {isPassed
+                  ? "You Have Successfully Completed the course"
+                  : `Try Assessment Again, ${attemptsLeft} More Attempt${
+                      attemptsLeft === 1 ? "" : "s"
+                    } Left`}
+              </p>
+            </div>
+
+            {/* Image */}
+            <div className="mb-6">
+              <img
+                src={imgSrc}
+                alt={isPassed ? "Success" : "Failed"}
+                className="mx-auto w-40 h-auto"
+              />
+            </div>
+
+            {/* Buttons area */}
+            <div className="flex justify-center gap-4">
+              {isPassed ? (
+                <>
+                  <Button
+                    onClick={handleDownloadCertificate}
+                    className="bg-[#029F92] hover:bg-[#02887E] text-white px-5"
+                  >
+                    Download Certificate
+                  </Button>
+
+                  <Button
+                    onClick={() => router.push("/courses/1")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5"
+                  >
+                    Back To Course
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {/* If fail: Try Again (if attemptsLeft > 0) and Back to Course */}
+                  <div className="flex gap-3">
+                    {attemptsLeft > 0 ? (
+                      <Button
+                        onClick={handleTryAgain}
+                        className="bg-[#086CB6] hover:bg-[#065A9C] text-white px-5"
+                      >
+                        Try Again
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => router.push("/courses/1")}
+                        className="bg-gray-400 text-white px-5"
+                      >
+                        No Attempts Left - Back to Course
+                      </Button>
+                    )}
+
+                    <Button
+                      onClick={() => router.push("/courses/1")}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-5"
+                    >
+                      Back To Course
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Extra small note */}
+            <p className="mt-6 text-xs text-gray-500">
+              {isPassed
+                ? "Certificate will be available for download."
+                : "You can reattempt the test if attempts remain."}
+            </p>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  // ---------- Normal assessment UI ----------
+  const currentAnswer = selectedAnswers[currentQuestion];
+  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const answeredQuestions = Object.keys(selectedAnswers).length;
+
+  const timePercentage = (timeLeft / TIME_LIMIT) * 100;
+  const isTimeWarning = timePercentage <= 25;
+  const isTimeCritical = timePercentage <= 10;
+
+  return (
+    <main className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+            onClick={() => window.history.back()}
+          >
+            <ChevronLeft className="w-4 h-4" /> Go Back
+          </Button>
+
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-800">IOT-ASSESSMENT</h1>
+            <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+              <span>I/S</span>
+              <span>•</span>
+              <span>
+                Question {currentQuestion + 1} of {questions.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="w-20" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Question Area */}
+          <div className="lg:col-span-2">
+            <Card className="p-6">
+              {/* Timer */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock
+                      className={`w-5 h-5 ${
+                        isTimeCritical
+                          ? "text-red-600"
+                          : isTimeWarning
+                          ? "text-orange-600"
+                          : "text-blue-600"
+                      }`}
+                    />
+                    <span className="font-medium text-gray-700">
+                      Time Remaining
+                    </span>
+                  </div>
+
+                  <div
+                    className={`text-xl font-bold ${
+                      isTimeCritical
+                        ? "text-red-600"
+                        : isTimeWarning
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {formatTime(timeLeft)}
+                  </div>
+                </div>
+
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-1000 ${
+                      isTimeCritical
+                        ? "bg-red-600"
+                        : isTimeWarning
+                        ? "bg-orange-500"
+                        : "bg-blue-600"
+                    }`}
+                    style={{ width: `${timePercentage}%` }}
+                  />
+                </div>
+
+                {isTimeWarning && (
+                  <div className="flex items-center gap-2 mt-2 text-sm text-orange-600">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>
+                      Time is running out! Please submit your answers soon.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Question */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  {questions[currentQuestion].question}
+                </h2>
+
+                <div className="space-y-3">
+                  {questions[currentQuestion].options.map((option, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleOptionSelect(idx)}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
+                        currentAnswer === idx
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            currentAnswer === idx
+                              ? "border-blue-500 bg-blue-500 text-white"
+                              : "border-gray-300 bg-white"
+                          }`}
+                        >
+                          {currentAnswer === idx && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <span className="font-medium">
+                          {String.fromCharCode(65 + idx)}. {option}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress */}
+              <div className="mb-6">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Question Progress</span>
+                  <span>
+                    {Math.round(progress)}% ({currentQuestion + 1}/
+                    {questions.length})
+                  </span>
+                </div>
+
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Navigation */}
+              <div className="flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentQuestion === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </Button>
+
+                <div className="text-sm text-gray-500">
+                  Answered: {answeredQuestions}/{questions.length}
+                </div>
+
+                {currentQuestion === questions.length - 1 ? (
+                  <Button
+                    onClick={handleSubmit}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6"
+                  >
+                    Submit Assessment
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    className="bg-[#086CB6] hover:bg-[#065A9C] text-white flex items-center gap-2"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="p-6 sticky top-4">
+              <h3 className="font-semibold text-gray-800 mb-4">Questions</h3>
+
+              <div className="grid grid-cols-5 gap-2 mb-6">
+                {questions.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleQuestionNav(idx)}
+                    className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                      currentQuestion === idx
+                        ? "bg-[#086CB6] text-white shadow-md"
+                        : selectedAnswers[idx] !== undefined
+                        ? "bg-green-100 text-green-700 border border-green-200"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-blue-700 font-medium">Time Left:</span>
+                  <span
+                    className={`font-bold ${
+                      isTimeCritical
+                        ? "text-red-600"
+                        : isTimeWarning
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-blue-600"></div>
+                  <span className="text-gray-600">Current Question</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-green-100 border border-green-200"></div>
+                  <span className="text-gray-600">Answered</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-gray-100"></div>
+                  <span className="text-gray-600">Unanswered</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
