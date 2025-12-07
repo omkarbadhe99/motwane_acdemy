@@ -156,11 +156,11 @@ export default function CourseOverviewStep({ onNext }: Props) {
           Course Thumbnail *
         </label>
         <input type="file" accept="image/*" onChange={handleThumbnailChange} />
-        {errors.thumbnail && (
+        {/* {errors.thumbnail && (
           <p className="text-red-500 text-sm mt-1">
             {errors?.thumbnail?.message}
           </p>
-        )}
+        )} */}
         {watchThumbnail && (
           <div className="mt-2">
             <img

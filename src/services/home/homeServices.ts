@@ -1,4 +1,4 @@
-import api from "@/lib/axios";
+import api from "@/src/lib/apis/axios_interceptor";
 
 export const course = async (payload: any) => {
   const token = localStorage.getItem("token");
